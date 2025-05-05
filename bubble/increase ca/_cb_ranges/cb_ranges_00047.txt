@@ -1,0 +1,1 @@
+{"water mass transfer [kg/m\u00b2/s]": [0, 10], "temperature [\u00b0C]": [47.8495251778653, 198.602547126621], "velocity [m/s]": [0.0, 0.9159684375516713]}
