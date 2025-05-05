@@ -190,7 +190,7 @@ class LeidenfrostProblem(Problem):
 
         # Add equation to the droplet
         droplet_eqs+=CompositionFlowEquations(self.liquid,isothermal=False,initial_temperature=self.Tdroplet0,with_IC=False,compo_space="C2",gravity=self.g*vector(0,-1))       
-        droplet_eqs+=InitialCondition(pressure=2*sigma0/self.droplet_radius) # Start with some reasonable pressure, since the density depends on it
+        #droplet_eqs+=InitialCondition(pressure=2*sigma0/self.droplet_radius) # Start with some reasonable pressure, since the density depends on it
 
         # Interface: Surface tension, mass transfer, velocity connection, Stefan flow, Marangoni flow, etc.
         interf_eqs=MultiComponentNavierStokesInterface(self.interface) 
