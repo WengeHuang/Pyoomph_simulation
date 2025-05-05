@@ -25,7 +25,7 @@ class LeidenfrostPlotter(MatplotlibPlotter):
         pr = cast(LeidenfrostProblem, self.get_problem())
         xrange = 3*pr.droplet_radius # view range
         self.background_color = "darkgrey"
-        self.set_view(-xrange, -0.2*xrange, xrange, xrange)  # -x_min, -ymin, x_max, y_max of the view window
+        self.set_view(-0.01*xrange, -0.02*xrange, 0.08*xrange, 0.09*xrange)  # -x_min, -ymin, x_max, y_max of the view window
         cb_T = self.add_colorbar("temperature [°C]", offset=-273.15, position = "bottom left")
         cb_u = self.add_colorbar("velocity [m/s]", position = "bottom right", cmap = "viridis")
 
@@ -61,10 +61,10 @@ class LeidenfrostPlotter(MatplotlibPlotter):
 
 
 
-        sb=self.add_scale_bar("bottom center")
-        tl=self.add_time_label("bottom center")
-        tl.unit="ms"
-        tl.yshift+=0.05
+        #sb=self.add_scale_bar("bottom center")
+        #tl=self.add_time_label("bottom center")
+        #tl.unit="ms"
+        #tl.yshift+=0.05
 
 
 # Mesh class. An axisymmetric bubble with liquid around on a substrate
@@ -99,8 +99,42 @@ class LeidenfrostAxisymmMesh(GmshTemplate):
         self.plane_surface("air_axis","top","side_wall","substrate_top","droplet_interface",name="air")
         self.plane_surface("substrate_axis","substrate_base","substrate_wall","substrate_top",name="substrate")
         # attach a remesher for meshing
-        self.remesher = Remesher2d(self)
+        #self.remesher = Remesher2d(self)
+        self.remesher=LeidenfrostRemesher(self)
 
+
+class LeidenfrostRemesher(Remesher2d):
+    def _define_geometry(self):
+        super()._define_geometry()                        
+        import gmsh
+        box = gmsh.model.mesh.field.add("Box")
+        gmsh.model.mesh.field.setNumber(box, "VIn", 0.005)   
+        gmsh.model.mesh.field.setNumber(box, "VOut", 2.0)   
+
+        gmsh.model.mesh.field.setNumber(box, "XMin", -0.1)
+        gmsh.model.mesh.field.setNumber(box, "XMax", 0.5)
+        gmsh.model.mesh.field.setNumber(box, "YMin", 0.0)
+        gmsh.model.mesh.field.setNumber(box, "YMax", 0.1)
+
+        gmsh.model.mesh.field.setAsBackgroundMesh(box)
+
+        # Add a distance field measusing the distance to the interface
+        #distance=gmsh.model.mesh.field.add("Distance")
+        #interface=[l.gmsh_line._id for l in self.get_line_entries_by_phys_name("substrate_top")]
+        #gmsh.model.mesh.field.setNumbers(distance, "CurvesList", interface)
+        #interface1 = [l.gmsh_line._id for l in self.get_line_entries_by_phys_name("droplet_interface")]
+        #interface2 = [l.gmsh_line._id for l in self.get_line_entries_by_phys_name("substrate_top")]
+        #interfaces = interface1 + interface2  
+        #gmsh.model.mesh.field.setNumbers(distance, "CurvesList", interfaces)
+
+        #rdist=0.5 # Blending distance
+        #threshold = gmsh.model.mesh.field.add("Threshold")
+        #gmsh.model.mesh.field.setNumber(threshold, "IField", distance)
+        #gmsh.model.mesh.field.setNumber(threshold, "LcMin", 0.005) # fine resolution closer to the interface
+        #gmsh.model.mesh.field.setNumber(threshold, "LcMax", 2) # far away from the interface
+        #gmsh.model.mesh.field.setNumber(threshold, "DistMin", 0.1*rdist) # Blending distances
+        #gmsh.model.mesh.field.setNumber(threshold, "DistMax", 5*rdist)
+        #gmsh.model.mesh.field.setAsBackgroundMesh(threshold)
 
 # Problem class. Combining the equations, meshes, etc to a full problem
 class LeidenfrostProblem(Problem):
