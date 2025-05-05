@@ -22,14 +22,14 @@ if False:
     problem+=RefineToLevel(lvl)@"bubble/interface/bubble_substrate"
     problem+=RefineToLevel(lvl)@"substrate/liquid_substrate/bubble_substrate"
 
-T=10*milli*second # end time
+T=50*milli*second # end time
 outstep=0.1*milli*second # output interval
 
 # presolve the temperature field
 #problem.solve(max_newton_iterations=20)
 problem.presolve_temperature()
 # and run the simulation with temporal adaptivity
-problem.run(T,outstep=outstep,temporal_error=1)
+problem.run(T,outstep=outstep,temporal_error=1, out_initially=False)
 
 
 #problem.presolve_temperature()
