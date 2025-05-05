@@ -51,13 +51,12 @@ class LeidenfrostPlotter(MatplotlibPlotter):
         #self.add_plot("liquid/liquid_substrate",transform=[None,"mirror_x"])
         #self.add_plot("bubble/bubble_substrate",transform=[None,"mirror_x"])
 
-        arrkey=self.add_arrow_key("bottom right",title="water mass transfer [kg/m²/s]")
+        arrkey=self.add_arrow_key("bottom right",title="water mass transfer [g/m²/s]",factor=1000)
 
         arrkey.ymargin=0.175
         arrkey.xmargin=0.15
         #self.add_plot("liquid/interface/masstrans_water",arrowkey=arrkey,transform=[None,"mirror_x"])
         self.add_plot("droplet/droplet_interface/masstrans_water",arrowkey=arrkey,transform="mirror_x")
-        
 
 
 
@@ -72,7 +71,7 @@ class LeidenfrostPlotter(MatplotlibPlotter):
 #class SingleBubbleAxisymmMesh(GmshTemplate):
 # Create a mesh
 class LeidenfrostAxisymmMesh(GmshTemplate):
-    def __init__(self, droplet_height: float = 1.1*milli*meter, droplet_radius: float = 1*milli*meter, channel_height: float = 10*milli*meter, channel_width: float = 10*milli*meter):
+    def __init__(self, droplet_height: float = 1.05*milli*meter, droplet_radius: float = 1*milli*meter, channel_height: float = 10*milli*meter, channel_width: float = 10*milli*meter):
         super().__init__()
         self.channel_height=channel_height
         self.droplet_height=droplet_height
@@ -81,12 +80,12 @@ class LeidenfrostAxisymmMesh(GmshTemplate):
 
     def define_geometry(self):
         self.mesh_mode="tris"
-        self.default_resolution=1
+        self.default_resolution=2
         # Create points
-        p00, pW0= self.point(0,0, size=0.025*self.default_resolution), self.point(self.channel_width,0)
-        p0H2, pWH2=self.point(0,self.channel_height,size=0.025*self.default_resolution), self.point(self.channel_width,self.channel_height,size=2*self.default_resolution)
-        p0DH, pRDHD,p0DHplus,p0DHminus=self.point(0,self.droplet_height),self.point(self.droplet_radius,self.droplet_height, size=0.025*self.default_resolution),self.point(0,self.droplet_height+self.droplet_radius, size=0.025*self.default_resolution),self.point(0,self.droplet_height-self.droplet_radius, size=0.025*self.default_resolution)
-        p0S, pWS = self.point(0, -0.1*self.channel_height), self.point(self.channel_width,-0.1*self.channel_height)# ,size=0.025*self.default_resolution
+        p00, pW0= self.point(0,0, size=0.005*self.default_resolution), self.point(self.channel_width,0)
+        p0H2, pWH2=self.point(0,self.channel_height,size=0.1*self.default_resolution), self.point(self.channel_width,self.channel_height,size=2*self.default_resolution)
+        p0DH, pRDHD,p0DHplus,p0DHminus=self.point(0,self.droplet_height),self.point(self.droplet_radius,self.droplet_height, size=0.025*self.default_resolution),self.point(0,self.droplet_height+self.droplet_radius, size=0.025*self.default_resolution),self.point(0,self.droplet_height-self.droplet_radius, size=0.005*self.default_resolution)
+        p0S, pWS = self.point(0, -0.1*self.channel_height, size=0.1*self.default_resolution), self.point(self.channel_width,-0.1*self.channel_height)# ,size=0.025*self.default_resolution
 
         # Create lines
         self.create_lines(p0DHminus,"air_axis",p00,"substrate_top",pW0,"side_wall",pWH2,"top",p0H2,"air_axis",p0DHplus)
@@ -110,7 +109,7 @@ class LeidenfrostProblem(Problem):
 
         # Default parameters
         self.channel_height=10*milli*meter
-        self.droplet_height=1.5*milli*meter
+        self.droplet_height=1.1*milli*meter
         self.droplet_radius=1*milli*meter
         self.channel_width=10*milli*meter
 
@@ -123,6 +122,7 @@ class LeidenfrostProblem(Problem):
         self.Tsubstrate=200*celsius
         
         self.gas=Mixture(get_pure_gas("air")+0.*get_pure_gas("water"))
+        #self.gas=get_pure_gas("air")
         self.liquid=get_pure_liquid("water")
         self.substrate=get_pure_solid("borosilicate")
         
@@ -131,8 +131,8 @@ class LeidenfrostProblem(Problem):
         
         self.g=9.81*meter/second**2
         
-        self.remesh_options=RemeshingOptions()
-        self.remesh_options.active=False  
+        self.remesh_options=RemeshingOptions(max_expansion=1.2,min_expansion=0.5,min_quality_decrease=0.5)
+        self.remesh_options.active=True  
 
         #self.alpha = self.define_global_parameter(alpha = 0.1) 
 
@@ -153,7 +153,7 @@ class LeidenfrostProblem(Problem):
         # Select some reasonable scales
         self.set_scaling(spatial=self.droplet_radius,temporal=1*milli*second,velocity=1*meter/second)
         # And set the remaining scales by the liquid properties
-        self.liquid.set_reference_scaling_to_problem(self,temperature=100*celsius)
+        self.liquid.set_reference_scaling_to_problem(self,temperature=20*celsius)
 
         # The pressure scale is given by the Laplace pressure, so we must evaluate the surface tension at some constant temperature
         self.get_interface_properties()                    
@@ -176,9 +176,9 @@ class LeidenfrostProblem(Problem):
         glass_eqs=MeshFileOutput()
 
         # Simple moving mesh dynamics
-        droplet_eqs+=LaplaceSmoothedMesh()
-        air_eqs+=LaplaceSmoothedMesh()
-        glass_eqs+=LaplaceSmoothedMesh()
+        droplet_eqs+=PseudoElasticMesh() #LaplaceSmoothedMesh()
+        air_eqs+=PseudoElasticMesh()
+        glass_eqs+=PseudoElasticMesh()
 
          # Axis of symmetry, sets e.g. velocity_x=0
         droplet_eqs+=AxisymmetryBC()@"droplet_axis"
@@ -186,9 +186,11 @@ class LeidenfrostProblem(Problem):
         glass_eqs+=AxisymmetryBC()@"substrate_axis"
 
 
+
+
         # Add equation to the droplet
         droplet_eqs+=CompositionFlowEquations(self.liquid,isothermal=False,initial_temperature=self.Tdroplet0,with_IC=False,compo_space="C2",gravity=self.g*vector(0,-1))       
-        #droplet_eqs+=InitialCondition(pressure=2*sigma0/self.droplet_radius) # Start with some reasonable pressure, since the density depends on it
+        droplet_eqs+=InitialCondition(pressure=2*sigma0/self.droplet_radius) # Start with some reasonable pressure, since the density depends on it
 
         # Interface: Surface tension, mass transfer, velocity connection, Stefan flow, Marangoni flow, etc.
         interf_eqs=MultiComponentNavierStokesInterface(self.interface) 
@@ -212,15 +214,12 @@ class LeidenfrostProblem(Problem):
         air_eqs+=ConnectMeshAtInterface()@"substrate_top"
         air_eqs+=NoSlipBC()@"substrate_top"
 
-        # Far field conditions for the temperature
-        #air_eqs+=TemperatureInfinityEquations(self.Troom)@"top"
-        # Far field stuff. Must be set to 0 or the hydrostatic pressure must be balanced at the side
         air_eqs+=DirichletBC(velocity_x=0)@"side_wall" 
 
         # Substrate just a conduction equation for the temperature. This is included in the CompositionFlowEquations as well, since we set isothermal=False there
         glass_eqs+=TemperatureConductionEquation(self.substrate,space="C2")+InitialCondition(temperature=self.Tsubstrate)      
         glass_eqs+=DirichletBC(temperature=self.Tsubstrate)@"substrate_base"
-        
+        glass_eqs+=DirichletBC(mesh_y=0)@"substrate_top"
        
         # Remesh when necessary
         droplet_eqs+=RemeshWhen(self.remesh_options)
@@ -239,7 +238,8 @@ class LeidenfrostProblem(Problem):
         with self.select_dofs() as dofs:
             dofs.select("droplet/temperature","air/temperature","substrate/temperature","droplet/droplet_interface/masstrans_water") #,"droplet/droplet_interface/masstrans_water"
             dofs.select("droplet/droplet_interface/_lagr_conn_temperature_temperature","air/substrate_top/_lagr_conn_temperature_temperature")
-            self.solve()
+            self.solve(max_newton_iterations=20)
         self.reapply_boundary_conditions()
         self.get_mesh("droplet").ignore_initial_condition=True
         self.get_mesh("air").ignore_initial_condition=True
+        self.get_mesh("substrate").ignore_initial_condition=True
