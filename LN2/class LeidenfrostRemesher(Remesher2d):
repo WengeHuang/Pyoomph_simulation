@@ -1,0 +1,19 @@
+class LeidenfrostRemesher(Remesher2d):
+    def _define_geometry(self):
+        super()._define_geometry()                        
+        import gmsh
+        # Add a distance field measusing the distance to the interface
+        distance=gmsh.model.mesh.field.add("Distance")
+        interface1=[l.gmsh_line._id for l in self.get_line_entries_by_phys_name("droplet_interface")]
+        interface2=[l.gmsh_line._id for l in self.get_line_entries_by_phys_name("substrate_top")]
+        gmsh.model.mesh.field.setNumbers(distance, "CurvesList", interface1)
+        gmsh.model.mesh.field.setNumbers(distance, "CurvesList", interface2)
+
+        rdist=0.5 # Blending distance
+        threshold = gmsh.model.mesh.field.add("Threshold")
+        gmsh.model.mesh.field.setNumber(threshold, "IField", distance)
+        gmsh.model.mesh.field.setNumber(threshold, "LcMin", 0.01) # fine resolution closer to the interface
+        gmsh.model.mesh.field.setNumber(threshold, "LcMax", 2) # far away from the interface
+        gmsh.model.mesh.field.setNumber(threshold, "DistMin", 0.1*rdist) # Blending distances
+        gmsh.model.mesh.field.setNumber(threshold, "DistMax", 5*rdist)
+        gmsh.model.mesh.field.setAsBackgroundMesh(threshold)

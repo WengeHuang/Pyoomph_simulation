@@ -22,7 +22,7 @@ if False:
     problem+=RefineToLevel(lvl)@"bubble/interface/bubble_substrate"
     problem+=RefineToLevel(lvl)@"substrate/liquid_substrate/bubble_substrate"
 
-T=20*milli*second # end time
+T=50*milli*second # end time
 outstep=0.1*milli*second # output interval
 
 # presolve the temperature field

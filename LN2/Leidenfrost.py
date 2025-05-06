@@ -25,7 +25,8 @@ class LeidenfrostPlotter(MatplotlibPlotter):
         pr = cast(LeidenfrostProblem, self.get_problem())
         xrange = 3*pr.droplet_radius # view range
         self.background_color = "darkgrey"
-        self.set_view(-0.01*xrange, -0.02*xrange, 0.08*xrange, 0.09*xrange)  # -x_min, -ymin, x_max, y_max of the view window
+        #self.set_view(-0.01*xrange, -0.02*xrange, 0.08*xrange, 0.09*xrange)  # -x_min, -ymin, x_max, y_max of the view window
+        self.set_view(-xrange, -0.2*xrange, xrange, xrange)
         cb_T = self.add_colorbar("temperature [°C]", offset=-273.15, position = "bottom left")
         cb_u = self.add_colorbar("velocity [m/s]", position = "bottom right", cmap = "viridis")
 
@@ -51,10 +52,12 @@ class LeidenfrostPlotter(MatplotlibPlotter):
         #self.add_plot("liquid/liquid_substrate",transform=[None,"mirror_x"])
         #self.add_plot("bubble/bubble_substrate",transform=[None,"mirror_x"])
 
-        arrkey=self.add_arrow_key("bottom right",title="water mass transfer [g/m²/s]",factor=1000)
+        arrkey=self.add_arrow_key("bottom right",title="water mass transfer [g/m²/s]")
 
         arrkey.ymargin=0.175
         arrkey.xmargin=0.15
+        arrkey.rangemode="fixed"
+        arrkey.set_range(0.1)
         #self.add_plot("liquid/interface/masstrans_water",arrowkey=arrkey,transform=[None,"mirror_x"])
         self.add_plot("droplet/droplet_interface/masstrans_water",arrowkey=arrkey,transform="mirror_x")
 
@@ -111,10 +114,10 @@ class LeidenfrostRemesher(Remesher2d):
         gmsh.model.mesh.field.setNumber(box, "VIn", 0.005)   
         gmsh.model.mesh.field.setNumber(box, "VOut", 2.0)   
 
-        gmsh.model.mesh.field.setNumber(box, "XMin", -0.1)
-        gmsh.model.mesh.field.setNumber(box, "XMax", 0.5)
-        gmsh.model.mesh.field.setNumber(box, "YMin", 0.0)
-        gmsh.model.mesh.field.setNumber(box, "YMax", 0.1)
+        gmsh.model.mesh.field.setNumber(box, "XMin", -0.0)
+        gmsh.model.mesh.field.setNumber(box, "XMax", 0.8)
+        gmsh.model.mesh.field.setNumber(box, "YMin", -0.05)
+        gmsh.model.mesh.field.setNumber(box, "YMax", 0.05)
 
         gmsh.model.mesh.field.setAsBackgroundMesh(box)
 
@@ -155,7 +158,7 @@ class LeidenfrostProblem(Problem):
         self.Tdroplet0=100*celsius
         self.Tsubstrate=200*celsius
         
-        self.gas=Mixture(get_pure_gas("air")+0.*get_pure_gas("water"))
+        self.gas=Mixture(get_pure_gas("air")+20*percent *get_pure_gas("water"))
         #self.gas=get_pure_gas("air")
         self.liquid=get_pure_liquid("water")
         self.substrate=get_pure_solid("borosilicate")
@@ -165,7 +168,7 @@ class LeidenfrostProblem(Problem):
         
         self.g=9.81*meter/second**2
         
-        self.remesh_options=RemeshingOptions(max_expansion=1.2,min_expansion=0.5,min_quality_decrease=0.5)
+        self.remesh_options=RemeshingOptions()#max_expansion=1.2,min_expansion=0.5,min_quality_decrease=0.5
         self.remesh_options.active=True  
 
         #self.alpha = self.define_global_parameter(alpha = 0.1) 
@@ -210,9 +213,9 @@ class LeidenfrostProblem(Problem):
         glass_eqs=MeshFileOutput()
 
         # Simple moving mesh dynamics
-        droplet_eqs+=PseudoElasticMesh() #LaplaceSmoothedMesh()
-        air_eqs+=PseudoElasticMesh()
-        glass_eqs+=PseudoElasticMesh()
+        droplet_eqs+=LaplaceSmoothedMesh() #LaplaceSmoothedMesh()PseudoElasticMesh()
+        air_eqs+=LaplaceSmoothedMesh()
+        glass_eqs+=LaplaceSmoothedMesh()
 
          # Axis of symmetry, sets e.g. velocity_x=0
         droplet_eqs+=AxisymmetryBC()@"droplet_axis"
