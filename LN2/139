@@ -1,0 +1,179 @@
+Generating equation C code, but do not write to any file
+Generating equation C code, but do not write to any file
+Generating equation C code, but do not write to any file
+Generating equation C code, but do not write to any file
+Generating equation C code, but do not write to any file
+Generating equation C code, but do not write to any file
+Generating equation C code, but do not write to any file
+Generating equation C code, but do not write to any file
+Generating equation C code, but do not write to any file
+Generating equation C code, but do not write to any file
+Generating equation C code, but do not write to any file
+Generating equation C code, but do not write to any file
+Generating equation C code, but do not write to any file
+Generating equation C code, but do not write to any file
+Generating equation C code, but do not write to any file
+Generating equation C code, but do not write to any file
+Generating equation C code, but do not write to any file
+Generating equation C code, but do not write to any file
+Generating equation C code, but do not write to any file
+Generating equation C code, but do not write to any file
+OUTPUT WILL BE WRITTEN TO runlong3
+Loading mesh file: runlong3/_gmsh/LeidenfrostAxisymmMesh.msh
+SOLVING THE FOLLOWING SYSTEM:
+/
+|--droplet : Combined Equations:
+|             MeshFileOutput
+|             LaplaceSmoothedMesh
+|             NavierStokesEquations
+|             CompositionAdvectionDiffusionEquations
+|             TemperatureAdvectionConductionEquation
+|             InitialCondition: pressure=(121.594349999999998144)*meter**(-1)*kilogram*second**(-2)
+|             InitialCondition: temperature=(373.14999999999997726)*kelvin
+|             RemeshWhen
+|  |--droplet_axis : AxisymmetryBC
+|  |--droplet_interface : Combined Equations:
+|  |                       MultiComponentNavierStokesInterface
+|  |                       ConnectFieldsAtInterface
+|  |                       ConnectMeshAtInterface
+|  |  |--air_axis : Combined Equations:
+|  |  |              DirichletBC: _lagr_conn_temperature_temperature=0
+|  |  |              DirichletBC: _lagr_conn_mesh_y=0
+|  |  |--droplet_axis : AxisymmetryBC
+|--air : Combined Equations:
+|         MeshFileOutput
+|         LaplaceSmoothedMesh
+|         NavierStokesEquations
+|         CompositionAdvectionDiffusionEquations
+|         TemperatureAdvectionConductionEquation
+|         InitialCondition: massfrac_water=0.2,temperature=(293.14999999999997726)*kelvin
+|         InitialCondition: temperature=(293.14999999999997726)*kelvin
+|         RemeshWhen
+|  |--air_axis : AxisymmetryBC
+|  |--top : DirichletBC: temperature=(293.14999999999997726)*kelvin
+|  |  |--air_axis : AxisymmetryBC
+|  |--substrate_top : Combined Equations:
+|  |                   ConnectFieldsAtInterface
+|  |                   ConnectMeshAtInterface
+|  |                   NoSlipBC
+|  |  |--air_axis : AxisymmetryBC
+|  |--side_wall : DirichletBC: velocity_x=0
+|  |--droplet_interface : DummyEquations
+|  |  |--air_axis : AxisymmetryBC
+|--substrate : Combined Equations:
+|               MeshFileOutput
+|               LaplaceSmoothedMesh
+|               TemperatureConductionEquation
+|               InitialCondition: temperature=(573.14999999999997726)*kelvin
+|  |--substrate_axis : AxisymmetryBC
+|  |--substrate_base : DirichletBC: temperature=(573.14999999999997726)*kelvin
+|  |  |--substrate_axis : AxisymmetryBC
+|  |--substrate_top : DirichletBC: mesh_y=0
+|  |  |--substrate_axis : AxisymmetryBC
+Generating interface code droplet droplet_axis
+AxisymmetryBC: Setting zero DirichletBCs at droplet/droplet_axis for {'velocity_x', 'mesh_x'}
+Generating interface code droplet droplet_interface
+Generating interface code air air_axis
+AxisymmetryBC: Setting zero DirichletBCs at air/air_axis for {'velocity_x', 'mesh_x'}
+Generating interface code air droplet_interface
+Generating interface code air side_wall
+Generating interface code air substrate_top
+Generating interface code air top
+Generating interface code substrate substrate_axis
+AxisymmetryBC: Setting zero DirichletBCs at substrate/substrate_axis for {'mesh_x'}
+Generating interface code substrate substrate_base
+Generating interface code substrate substrate_top
+Generating interface code droplet droplet_interface__air_axis
+Generating interface code droplet droplet_interface__droplet_axis
+AxisymmetryBC: Setting zero DirichletBCs at droplet/droplet_interface/droplet_axis for {'velocity_x', 'mesh_x', '_lagr_conn_velocity_x'}
+Generating interface code air droplet_interface__air_axis
+AxisymmetryBC: Setting zero DirichletBCs at air/droplet_interface/air_axis for {'velocity_x', 'mesh_x'}
+Generating interface code air substrate_top__air_axis
+AxisymmetryBC: Setting zero DirichletBCs at air/substrate_top/air_axis for {'velocity_x', 'mesh_x'}
+Generating interface code air top__air_axis
+AxisymmetryBC: Setting zero DirichletBCs at air/top/air_axis for {'velocity_x', 'mesh_x'}
+Generating interface code substrate substrate_base__substrate_axis
+AxisymmetryBC: Setting zero DirichletBCs at substrate/substrate_base/substrate_axis for {'mesh_x'}
+Generating interface code substrate substrate_top__substrate_axis
+AxisymmetryBC: Setting zero DirichletBCs at substrate/substrate_top/substrate_axis for {'mesh_x'}
+BUILDING GLOBAL MESH FROM LIST
+Number of equations: 70746
+Template is using msh file ../_gmsh/LeidenfrostAxisymmMesh.msh. Consider to change it with the additional_info dict by setting additional_info['exchange_msh_file']['../_gmsh/LeidenfrostAxisymmMesh.msh']=...
+REBUILDING GLOBAL MESH FROM LIST
+REBUILDING GLOBAL MESH
+REBUILDING GLOBAL MESH FROM LIST
+Number of equations: 70746
+State file runlong3/_states/state_000001.dump loaded
+REBUILDING GLOBAL MESH FROM LIST
+REBUILDING GLOBAL MESH
+Number of equations: 70746
+Number of equations: 70746
+Number of equations: 70746
+Template is using msh file ../_gmsh/LeidenfrostAxisymmMesh_REMESH_000000.msh. Consider to change it with the additional_info dict by setting additional_info['exchange_msh_file']['../_gmsh/LeidenfrostAxisymmMesh_REMESH_000000.msh']=...
+Loading mesh file: runlong3/_states/../_gmsh/LeidenfrostAxisymmMesh_REMESH_000000.msh
+REBUILDING GLOBAL MESH FROM LIST
+REBUILDING GLOBAL MESH
+REBUILDING GLOBAL MESH FROM LIST
+Number of equations: 193773
+State file runlong3/_states/state_000002.dump loaded
+REBUILDING GLOBAL MESH FROM LIST
+REBUILDING GLOBAL MESH
+Number of equations: 193773
+Number of equations: 193773
+Number of equations: 193773
+Template is using msh file ../_gmsh/LeidenfrostAxisymmMesh_REMESH_000000.msh. Consider to change it with the additional_info dict by setting additional_info['exchange_msh_file']['../_gmsh/LeidenfrostAxisymmMesh_REMESH_000000.msh']=...
+REBUILDING GLOBAL MESH FROM LIST
+REBUILDING GLOBAL MESH
+REBUILDING GLOBAL MESH FROM LIST
+Number of equations: 193773
+State file runlong3/_states/state_000003.dump loaded
+REBUILDING GLOBAL MESH FROM LIST
+REBUILDING GLOBAL MESH
+Number of equations: 193773
+Number of equations: 193773
+Number of equations: 193773
+Template is using msh file ../_gmsh/LeidenfrostAxisymmMesh_REMESH_000001.msh. Consider to change it with the additional_info dict by setting additional_info['exchange_msh_file']['../_gmsh/LeidenfrostAxisymmMesh_REMESH_000001.msh']=...
+Loading mesh file: runlong3/_states/../_gmsh/LeidenfrostAxisymmMesh_REMESH_000001.msh
+REBUILDING GLOBAL MESH FROM LIST
+REBUILDING GLOBAL MESH
+REBUILDING GLOBAL MESH FROM LIST
+Number of equations: 183420
+State file runlong3/_states/state_000004.dump loaded
+REBUILDING GLOBAL MESH FROM LIST
+REBUILDING GLOBAL MESH
+Number of equations: 183420
+Number of equations: 183420
+Number of equations: 183420
+Template is using msh file ../_gmsh/LeidenfrostAxisymmMesh_REMESH_000002.msh. Consider to change it with the additional_info dict by setting additional_info['exchange_msh_file']['../_gmsh/LeidenfrostAxisymmMesh_REMESH_000002.msh']=...
+Loading mesh file: runlong3/_states/../_gmsh/LeidenfrostAxisymmMesh_REMESH_000002.msh
+REBUILDING GLOBAL MESH FROM LIST
+REBUILDING GLOBAL MESH
+REBUILDING GLOBAL MESH FROM LIST
+Number of equations: 179615
+State file runlong3/_states/state_000005.dump loaded
+REBUILDING GLOBAL MESH FROM LIST
+REBUILDING GLOBAL MESH
+Number of equations: 179615
+Number of equations: 179615
+Number of equations: 179615
+Template is using msh file ../_gmsh/LeidenfrostAxisymmMesh_REMESH_000002.msh. Consider to change it with the additional_info dict by setting additional_info['exchange_msh_file']['../_gmsh/LeidenfrostAxisymmMesh_REMESH_000002.msh']=...
+REBUILDING GLOBAL MESH FROM LIST
+REBUILDING GLOBAL MESH
+REBUILDING GLOBAL MESH FROM LIST
+Number of equations: 179615
+State file runlong3/_states/state_000006.dump loaded
+REBUILDING GLOBAL MESH FROM LIST
+REBUILDING GLOBAL MESH
+Number of equations: 179615
+Number of equations: 179615
+Number of equations: 179615
+Template is using msh file ../_gmsh/LeidenfrostAxisymmMesh_REMESH_000002.msh. Consider to change it with the additional_info dict by setting additional_info['exchange_msh_file']['../_gmsh/LeidenfrostAxisymmMesh_REMESH_000002.msh']=...
+REBUILDING GLOBAL MESH FROM LIST
+REBUILDING GLOBAL MESH
+REBUILDING GLOBAL MESH FROM LIST
+Number of equations: 179615
+State file runlong3/_states/state_000007.dump loaded
+REBUILDING GLOBAL MESH FROM LIST
+REBUILDING GLOBAL MESH
+Number of equations: 179615
+Number of equations: 179615

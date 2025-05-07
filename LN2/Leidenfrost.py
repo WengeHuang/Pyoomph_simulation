@@ -65,8 +65,8 @@ class LeidenfrostPlotter(MatplotlibPlotter):
 
 
         #sb=self.add_scale_bar("bottom center")
-        #tl=self.add_time_label("bottom center")
-        #tl.unit="ms"
+        tl=self.add_time_label("bottom center")
+        tl.unit="ms"
         #tl.yshift+=0.05
 
 
@@ -74,7 +74,7 @@ class LeidenfrostPlotter(MatplotlibPlotter):
 #class SingleBubbleAxisymmMesh(GmshTemplate):
 # Create a mesh
 class LeidenfrostAxisymmMesh(GmshTemplate):
-    def __init__(self, droplet_height: float = 1.05*milli*meter, droplet_radius: float = 1*milli*meter, channel_height: float = 10*milli*meter, channel_width: float = 10*milli*meter):
+    def __init__(self, droplet_height: float = 1.1*milli*meter, droplet_radius: float = 1*milli*meter, channel_height: float = 10*milli*meter, channel_width: float = 10*milli*meter):
         super().__init__()
         self.channel_height=channel_height
         self.droplet_height=droplet_height
@@ -117,7 +117,7 @@ class LeidenfrostRemesher(Remesher2d):
         gmsh.model.mesh.field.setNumber(box, "XMin", -0.0)
         gmsh.model.mesh.field.setNumber(box, "XMax", 0.8)
         gmsh.model.mesh.field.setNumber(box, "YMin", -0.05)
-        gmsh.model.mesh.field.setNumber(box, "YMax", 0.05)
+        gmsh.model.mesh.field.setNumber(box, "YMax", 0.1)
 
         gmsh.model.mesh.field.setAsBackgroundMesh(box)
 
@@ -156,7 +156,7 @@ class LeidenfrostProblem(Problem):
         
         self.Troom=20*celsius
         self.Tdroplet0=100*celsius
-        self.Tsubstrate=200*celsius
+        self.Tsubstrate=300*celsius
         
         self.gas=Mixture(get_pure_gas("air")+20*percent *get_pure_gas("water"))
         #self.gas=get_pure_gas("air")
