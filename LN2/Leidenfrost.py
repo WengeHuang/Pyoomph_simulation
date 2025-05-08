@@ -25,8 +25,8 @@ class LeidenfrostPlotter(MatplotlibPlotter):
         pr = cast(LeidenfrostProblem, self.get_problem())
         xrange = 3*pr.droplet_radius # view range
         self.background_color = "darkgrey"
-        #self.set_view(-0.01*xrange, -0.02*xrange, 0.08*xrange, 0.09*xrange)  # -x_min, -ymin, x_max, y_max of the view window
-        self.set_view(-xrange, -0.2*xrange, xrange, xrange)
+        self.set_view(-0.01*xrange, -0.02*xrange, 0.2*xrange, 0.09*xrange)  # -x_min, -ymin, x_max, y_max of the view window
+        #self.set_view(-xrange, -0.2*xrange, xrange, xrange)
         cb_T = self.add_colorbar("temperature [°C]", offset=-273.15, position = "bottom left")
         cb_u = self.add_colorbar("velocity [m/s]", position = "bottom right", cmap = "viridis")
 
