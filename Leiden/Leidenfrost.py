@@ -18,7 +18,7 @@ from pyoomph.meshes.zeta import * # Zeta coordinate interpolation upon remeshing
 from pyoomph.output.plotting import MatplotlibPlotter # Plotting tools
 
 
-
+from pyoomph.materials.mass_transfer import DifferenceDrivenMassTransferModel # Mass transfer models
 
 # Plotter calss. Will generate figures
 class LeidenfrostPlotter(MatplotlibPlotter):
@@ -33,9 +33,9 @@ class LeidenfrostPlotter(MatplotlibPlotter):
         cb_u = self.add_colorbar("velocity [m/s]", position = "bottom right", cmap = "coolwarm") #cmap = "coolwarm" cmap = "viridis"
 
         #showing mesh
-        self.add_plot("droplet")
-        self.add_plot("air")
-        self.add_plot("substrate")
+        #self.add_plot("droplet")
+        #self.add_plot("air")
+        #self.add_plot("substrate")
 
         self.add_plot("droplet/temperature", colorbar=cb_T, transform = "mirror_x")
         self.add_plot("air/temperature", colorbar=cb_T, transform = "mirror_x")
@@ -44,11 +44,13 @@ class LeidenfrostPlotter(MatplotlibPlotter):
         self.add_plot("droplet/velocity",colorbar=cb_u)
         self.add_plot("air/velocity",colorbar=cb_u)
         
-        self.add_plot("droplet/velocity",mode="arrows",transform="mirror_x", linecolor="white")
-        self.add_plot("air/velocity",mode="arrows",transform="mirror_x")
-        
+        self.add_plot("droplet/velocity",mode="arrows",transform=[None,"mirror_x"], linecolor="white")
+        #self.add_plot("air/velocity",mode="arrows",transform="mirror_x")
+        self.add_plot("air/velocity",mode="arrows",transform=[None,"mirror_x"])
+
         self.add_plot("droplet/droplet_interface",transform=[None,"mirror_x"])
-        arrkey=self.add_arrow_key("bottom right",title="water mass transfer [g/m²/s]")
+        self.add_plot("substrate/substrate_top",transform=[None,"mirror_x"])
+        arrkey=self.add_arrow_key("top right",title="water mass transfer [g/m²/s]")
         arrkey.ymargin=0.175
         arrkey.xmargin=0.15
         arrkey.rangemode="fixed"
@@ -58,10 +60,11 @@ class LeidenfrostPlotter(MatplotlibPlotter):
 
 
 
-        #sb=self.add_scale_bar("bottom center")
+        sb=self.add_scale_bar("bottom center")
+        sb.yshift+=0.05
         tl=self.add_time_label("bottom center")
         tl.unit="ms"
-        #tl.yshift+=0.05
+        tl.yshift-=0.04
 
 
 class LeidenfrostAxisymmMesh(GmshTemplate):
@@ -83,9 +86,9 @@ class LeidenfrostAxisymmMesh(GmshTemplate):
         self.channel_width=pr.channel_width
         #mesh size inf
         self.mesh_size_bottom = 0.01
-        self.mesh_size_center = 0.1
+        self.mesh_size_center = 0.05
         self.mesh_size_top = 0.05
-        self.mesh_size_far = 1
+        self.mesh_size_far = 0.5
 
         # Create points
         p00 = self.point(0,0, size=self.mesh_size_bottom*self.default_resolution)
@@ -191,6 +194,7 @@ class LeidenfrostProblem(Problem):
         self.remesh_options=RemeshingOptions()#max_expansion=1.2,min_expansion=0.5,min_quality_decrease=0.5
         self.remesh_options.active=True  
 
+
         #self.alpha = self.define_global_parameter(alpha = 0.1) 
 
     def get_interface_properties(self):
@@ -250,13 +254,16 @@ class LeidenfrostProblem(Problem):
         droplet_eqs+=InitialCondition(pressure=2*sigma0/self.droplet_radius) # Start with some reasonable pressure, since the density depends on it
 
         # Interface: Surface tension, mass transfer, velocity connection, Stefan flow, Marangoni flow, etc.
-        interf_eqs=MultiComponentNavierStokesInterface(self.interface) 
+        interf_eqs=MultiComponentNavierStokesInterface(self.interface, total_mass_loss_factor_inside=0) 
          # Temperature must be connected (but the connection must be deactivated at the contact line, will be enforced via the substrate connection)       
         interf_eqs+=ConnectFieldsAtInterface("temperature")+DirichletBC(_lagr_conn_temperature_temperature=0)@"air_axis"
         #interf_eqs+=ConnectMeshAtInterface()
         interf_eqs+=ConnectMeshAtInterface() + DirichletBC(_lagr_conn_mesh_y=0)@"air_axis" # Mesh must stay connected        
         droplet_eqs+=interf_eqs@"droplet_interface"         
         droplet_eqs+=InitialCondition(temperature=self.Tdroplet0)
+        # constant volume constrain
+        V0 = 4/3*pi*self.droplet_radius**3
+        droplet_eqs+=EnforceVolumeByPressure(V0)
         # temperature for th droplet interface
         #air_eqs+=DirichletBC(temperature=self.Tdroplet0)@"droplet_interface"
 
@@ -282,6 +289,24 @@ class LeidenfrostProblem(Problem):
         droplet_eqs+=RemeshWhen(self.remesh_options)
         air_eqs+=RemeshWhen(self.remesh_options)
 
+        # Measure the volume (integral over 1 ) 
+        droplet_eqs+=IntegralObservables(volume=1)
+        # Droplet center of mass height and velocity
+        droplet_eqs+=IntegralObservables(_volume=1, _height = var("coordinate_y"), height = lambda _volume,_height : _height/_volume)
+        droplet_eqs+=IntegralObservables(_velocity=var("velocity_y"), velocity = lambda _volume,_velocity : _velocity/_volume)
+        ##droplet_eqs+=TextFileOutput()@"droplet_interface/droplet_axis" # all inf on the interface
+        droplet_eqs+=IntegralObservableOutput("droplet_volume_height_velocity") # write it to bubble_evolution.txt
+        
+        # Measure the surface area (integral over 1 ) 
+        droplet_eqs+=IntegralObservables(area=1)@"droplet_interface"
+        droplet_eqs+=IntegralObservableOutput("surface_area")@"droplet_interface"
+        
+        # Measure the some data at points 
+        only_lower=heaviside(-var("normal_y",domain=".."))  # Only take the bottom point, not the upper a step function
+        droplet_eqs+=IntegralObservables(cartesian,h=only_lower*var("coordinate_y"),pressure=only_lower*var("absolute_pressure"),T=only_lower*var("temperature"))@"droplet_interface/droplet_axis"  # And potentially more output   
+        # the output pressure var("pressure") is just the pressure used in the N-S equation
+        # to have the absolute pressure, one needs to have var("absolute_pressure")
+        droplet_eqs+=IntegralObservableOutput("bottom_point")@"droplet_interface/droplet_axis"
         
         # Add all equations to the mesh domains
         self+=droplet_eqs@"droplet"+air_eqs@"air"
@@ -289,6 +314,7 @@ class LeidenfrostProblem(Problem):
 
 
     def presolve_temperature(self):
+        self.default_mass_flux_coefficient=1*kilogram/(meter**2*second)
         # Start with a reasonable temperature profile by solving it before starting the simulation
         if not self.is_initialised():
             self.initialise()
