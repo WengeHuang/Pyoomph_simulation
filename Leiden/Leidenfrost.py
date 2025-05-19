@@ -298,15 +298,15 @@ class LeidenfrostProblem(Problem):
         droplet_eqs+=IntegralObservableOutput("droplet_volume_height_velocity") # write it to bubble_evolution.txt
         
         # Measure the surface area (integral over 1 ) 
-        droplet_eqs+=IntegralObservables(area=1)@"droplet_interface"
-        droplet_eqs+=IntegralObservableOutput("surface_area")@"droplet_interface"
+    #    droplet_eqs+=IntegralObservables(area=1)@"droplet_interface"
+    #    droplet_eqs+=IntegralObservableOutput("surface_area")@"droplet_interface"
         
         # Measure the some data at points 
-        only_lower=heaviside(-var("normal_y",domain=".."))  # Only take the bottom point, not the upper a step function
-        droplet_eqs+=IntegralObservables(cartesian,h=only_lower*var("coordinate_y"),pressure=only_lower*var("absolute_pressure"),T=only_lower*var("temperature"))@"droplet_interface/droplet_axis"  # And potentially more output   
+    #    only_lower=heaviside(-var("normal_y",domain=".."))  # Only take the bottom point, not the upper a step function
+    #    droplet_eqs+=IntegralObservables(cartesian,h=only_lower*var("coordinate_y"),pressure=only_lower*var("pressure"),T=only_lower*var("temperature"))@"droplet_interface/droplet_axis"  # And potentially more output   
         # the output pressure var("pressure") is just the pressure used in the N-S equation
         # to have the absolute pressure, one needs to have var("absolute_pressure")
-        droplet_eqs+=IntegralObservableOutput("bottom_point")@"droplet_interface/droplet_axis"
+    #    droplet_eqs+=IntegralObservableOutput("bottom_point")@"droplet_interface/droplet_axis"
         
         # Add all equations to the mesh domains
         self+=droplet_eqs@"droplet"+air_eqs@"air"
