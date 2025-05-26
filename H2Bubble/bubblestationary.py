@@ -29,7 +29,7 @@ class SingleBubblePlotter(MatplotlibPlotter):
         self.background_color = "darkgrey"
         self.set_view(-xrange, -0.3*xrange, xrange, xrange)  # -x_min, -ymin, x_max, y_max of the view window
         #self.set_view(-0.5*xrange, -0.05*xrange, 0, 0.4*xrange)
-        cb_T = self.add_colorbar("temperature [°C]", offset=-273.15, position = "top right")
+        cb_T = self.add_colorbar("temperature [°C]",  position = "top right")
         cb_c = self.add_colorbar("velocity [m/s]", position = "bottom right", cmap = "viridis")
         #cb_c=self.add_colorbar("c [g/m^3]",cmap="Blues",position="top left")
         #showing mesh
@@ -42,7 +42,7 @@ class SingleBubblePlotter(MatplotlibPlotter):
         #self.add_plot("bubble/c", colorbar=cb_c, transform = "mirror_x")
         #self.add_plot("Pt/J", colorbar=cb_c,transform=[None,"mirror_x"])
         #self.add_plot("substrate/temperature", colorbar=cb_T)
-        self.add_plot("liquid/Q",colorbar=cb_T,transform="mirror_x")
+        self.add_plot("liquid/J",colorbar=cb_T,transform="mirror_x")
        
         #self.add_plot("liquid/cc",colorbar=cb_T)
         #self.add_plot("bubble/velocity",colorbar=cb_u)
@@ -292,21 +292,21 @@ class SingleBubbleProblem(Problem):
         Pt_eqs+=LaplaceSmoothedMesh()
         glass_eqs+=LaplaceSmoothedMesh()  
 
-        liquid_eqs+=Current()
-        liquid_eqs+=DirichletBC(phi=0)@"liquid_top"
-        liquid_eqs+=DirichletBC(phi=-1)@"liquid_Pt"
-        liquid_eqs+=CurrentNoFlux()@"interface"
+        #liquid_eqs+=Current()
+        #liquid_eqs+=DirichletBC(phi=0)@"liquid_top"
+        #liquid_eqs+=DirichletBC(phi=-1)@"liquid_Pt"
+        #liquid_eqs+=CurrentNoFlux()@"interface"
         #liquid_eqs+=InitialCondition(J_x = 1, J_y=0)
         #liquid_eqs+=Scaling(J=scale_factor("Jscale"))+TestScaling(J=1/scale_factor("Jscale"))
-        liquid_eqs+=DirichletBC(J_y = 1, J_x = 0)@"liquid_Pt"
+        #liquid_eqs+=DirichletBC(J_y = 1, J_x = 0)@"liquid_Pt"
         #liquid_eqs+=DirichletBC(J_x = 0)@"liquid_axis"
-        liquid_eqs+=DirichletBC(J_x = 0)@"liquid_side"
-        liquid_eqs+=DirichletBC(J_y = 0)@"liquid_substrate"
+        #liquid_eqs+=DirichletBC(J_x = 0)@"liquid_side"
+        #liquid_eqs+=DirichletBC(J_y = 0)@"liquid_substrate"
 
         # Poisson (Laplace) equation for the electric potential:
-        #liquid_eqs+=PoissonEquation(name = "phiv",coefficient=scale_factor("spatial")**2)
+        liquid_eqs+=PoissonEquation(name = "phiv",coefficient=scale_factor("spatial")**2)
         #liquid_eqs+=PoissonEquation(name = "phiv",coefficient=self.electric_conductivity*scale_factor("spatial")**2/scale_factor("elec"))
-        #liquid_eqs+=DirichletBC(phiv=self.voltage_top)@"liquid_top"
+        liquid_eqs+=DirichletBC(phiv=self.voltage_top)@"liquid_top"
         #liquid_eqs+=NeumannBC(phiv = 0)@"liquid_side"
         #liquid_eqs+=NeumannBC(phiv = 0)@"liquid_substrate"
         #liquid_eqs+=NeumannBC(phiv = 0)@"interface"
@@ -314,16 +314,16 @@ class SingleBubbleProblem(Problem):
         #liquid_eqs+=DirichletBC(phiv=self.voltage_base)@"liquid_substrate"
         #liquid_eqs+=DirichletBC(phiv=self.decreaing_potential())@"liquid_Pt"
         liquid_eqs+=AxisymmetryBC()@"liquid_axis"
-        liquid_eqs+=InitialCondition(phi=-0.5)
+        #liquid_eqs+=InitialCondition(phi=-0.5)
         #liquid_eqs+=Scaling(phiv=scale_factor("phiv"))#+TestScaling(J=1/scale_factor("phiv"))
-        #liquid_eqs+=ConnectFieldsAtInterface("phiv")@"liquid_Pt"
-        #liquid_eqs+=ConnectMeshAtInterface()@"liquid_Pt"  
+        liquid_eqs+=ConnectFieldsAtInterface("phiv")@"liquid_Pt"
+        liquid_eqs+=ConnectMeshAtInterface()@"liquid_Pt"  
         #liquid_eqs+=DirichletBC(phiv=self.voltage_base)@"liquid_substrate/liquid_Pt"
         # remember to remove the _lagrange constrin when connecting to the bubble
-        #Pt_eqs+=PoissonEquation(name = "phiv",coefficient=1*self.electric_conductivity*scale_factor("spatial")**2/scale_factor("elec"))
+        Pt_eqs+=PoissonEquation(name = "phiv",coefficient=1*self.electric_conductivity*scale_factor("spatial")**2/scale_factor("elec"))
         #Pt_eqs+=InitialCondition(phiv=self.phi0)
-        #Pt_eqs+=DirichletBC(phiv=self.voltage_base)@"substrate_base_Pt"
-        #Pt_eqs+=AxisymmetryBC()@"substrate_axis"
+        Pt_eqs+=DirichletBC(phiv=self.voltage_base)@"substrate_base_Pt"
+        Pt_eqs+=AxisymmetryBC()@"substrate_axis"
         #Pt_eqs+=NeumannBC(phiv = 0)@"bubble_substrate_Pt"
         #Pt_eqs+=NeumannBC(phiv = 0)@"Pt_side"
 
@@ -355,8 +355,8 @@ class SingleBubbleProblem(Problem):
         #Q=dot(var("J"),var("J"))/self.electric_conductivity
         #Q=dot(grad(var("phiv")),grad(var("phiv")))*self.electric_conductivity
 
-        liquid_eqs+=LocalExpressions(Q=dot(var("J"),var("J"))/self.electric_conductivity)
-        #liquid_eqs+=LocalExpressions(J=self.electric_conductivity*grad(var("phiv")) )
+        #liquid_eqs+=LocalExpressions(Q=dot(var("J"),var("J"))/self.electric_conductivity)
+        liquid_eqs+=LocalExpressions(J=self.electric_conductivity*grad(var("phiv")) )
         #Pt_eqs+=LocalExpressions(J=self.electric_conductivity*grad(var("phiv")) )
 
 

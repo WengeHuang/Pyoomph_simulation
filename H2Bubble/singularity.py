@@ -23,14 +23,36 @@ from pyoomph.output.plotting import MatplotlibPlotter # Plotting tools
 # Plotter calss. Will generate figures
 class SingleBubblePlotter(MatplotlibPlotter):
     def define_plot(self):
+        self.name = "close_view"
         # Get the problem object
         pr = cast(SingleBubbleProblem, self.get_problem())
         xrange = 2*pr.R0 # view range
         self.background_color = "darkgrey"
         self.set_view(-xrange, -0.3*xrange, xrange, xrange)  # -x_min, -ymin, x_max, y_max of the view window
         #self.set_view(-0.5*xrange, -0.05*xrange, 0, 0.4*xrange)
-        cb_T = self.add_colorbar("temperature [°C]", offset=-273.15, position = "top right")
-        cb_u = self.add_colorbar("velocity [m/s]", position = "bottom right", cmap = "viridis")
+        cb_T = self.add_colorbar("temperature [°C]", offset=-273.15, position = "bottom right")
+        cb_J = self.add_colorbar("J", position = "bottom left", cmap = "viridis")
+
+        self.add_plot("liquid/temperature",colorbar=cb_T,transform=[None,"mirror_x"])
+       
+        self.add_plot("liquid/J",colorbar=cb_J,transform="mirror_x")
+
+        self.add_plot("liquid/J",mode="streamlines",transform="mirror_x")
+
+        tl=self.add_time_label("bottom center")
+
+# Plotter calss. Will generate figures
+class SingleBubblePlotter2(MatplotlibPlotter):
+    def define_plot(self):
+        self.name = "far_view"
+        # Get the problem object
+        pr = cast(SingleBubbleProblem, self.get_problem())
+        xrange = 17*pr.R0 # view range
+        self.background_color = "darkgrey"
+        self.set_view(-xrange, -0.3*xrange, xrange, xrange)  # -x_min, -ymin, x_max, y_max of the view window
+        #self.set_view(-0.5*xrange, -0.05*xrange, 0, 0.4*xrange)
+        cb_T = self.add_colorbar("temperature [°C]", offset=-273.15, position = "bottom right")
+        cb_J = self.add_colorbar("J", position = "bottom left", cmap = "viridis")
         #cb_c=self.add_colorbar("c [g/m^3]",cmap="Blues",position="top left")
         #showing mesh
         #self.add_plot("liquid")
@@ -42,17 +64,17 @@ class SingleBubblePlotter(MatplotlibPlotter):
         #self.add_plot("bubble/c", colorbar=cb_c, transform = "mirror_x")
         #self.add_plot("Pt/J", colorbar=cb_c,transform=[None,"mirror_x"])
         #self.add_plot("substrate/temperature", colorbar=cb_T)
-        self.add_plot("liquid/temperature",colorbar=cb_T,transform="mirror_x")
+        self.add_plot("liquid/temperature",colorbar=cb_T,transform=[None,"mirror_x"])
        
-        #self.add_plot("liquid/cc",colorbar=cb_T)
-        self.add_plot("liquid/velocity",colorbar=cb_u)
+        self.add_plot("liquid/J",colorbar=cb_J,transform="mirror_x")
+        #self.add_plot("liquid/velocity",colorbar=cb_u)
         #self.add_plot("bubble/c",colorbar=cb_u)
        
         #self.add_plot("bubble/velocity",mode="arrows",transform=[None,"mirror_x"])
         self.add_plot("liquid/J",mode="streamlines",transform="mirror_x")
         #self.add_plot("Pt/J",mode="streamlines",transform="mirror_x")
         #self.add_plot("bubble/velocity",mode="arrows",transform="mirror_x")
-        self.add_plot("liquid/velocity",mode="arrows",transform=[None,"mirror_x"])
+        #self.add_plot("liquid/velocity",mode="arrows",transform=[None,"mirror_x"])
        
         #self.add_plot("liquid/interface",transform=[None,"mirror_x"])
         #self.add_plot("liquid/liquid_substrate",transform=[None,"mirror_x"])
@@ -102,7 +124,45 @@ class SingleBubbleAxisymmMesh_angle(GmshTemplate):
  
         # attach a remesher for meshing
         self.remesher = Remesher2d(self)
+
+# Mesh class. An axisymmetric bubble with liquid around on a substrate
+class SingleBubbleAxisymmMesh_delta(GmshTemplate):
+    def define_geometry(self):
+        pr=cast(SingleBubbleProblem,self.get_problem())
+        geom=DropletGeometry(curv_radius=pr.R0,contact_angle=pr.contact_angle)
+        self.mesh_mode="tris"
+        self.default_resolution=0.1
+        cl_factor=0.1
+        p00=self.point(0,0)
+        pr0=self.point(geom.base_radius,0,size=self.default_resolution*cl_factor)
+        p0h=self.point(0,geom.apex_height)
+       
+        self.create_lines(p0h,"bubble_axis",p00,"bubble_substrate_Pt",pr0)
+        self.circle_arc(pr0,p0h,through_point=(-geom.base_radius,0),name="interface")
+        self.plane_surface("interface","bubble_substrate_Pt","bubble_axis",name="bubble")
+       
+        far_resolution=self.default_resolution*(pr.Lhost/pr.R0)
+        pL0=self.point(pr.Lhost,0,size=far_resolution)
+        p0L=self.point(0,pr.Lhost,size=far_resolution)
+        pLL=self.point(pr.Lhost,pr.Lhost,size=far_resolution)
+        pPG=self.point(pr.Pt_radius,0,size=self.default_resolution*cl_factor)
+        pPG_m = self.point(pr.Pt_radius- pr.delta,0 ,size=self.default_resolution*cl_factor)
+        pPG_p = self.point(pr.Pt_radius + pr.delta,0,size=self.default_resolution*cl_factor)
+        self.create_lines(pr0,"liquid_Pt",pPG_m,"left",pPG,"right",pPG_p,"liquid_substrate",pL0,"liquid_side",pLL,"liquid_top",p0L,"liquid_axis",p0h)
+        self.plane_surface("liquid_Pt","left","right","liquid_axis","liquid_substrate","liquid_side","interface","liquid_top",name="liquid")
  
+        # add a substrate with thickness
+        p0S=self.point(0,-pr.thickness)
+        pLS=self.point(pr.Lhost,-pr.thickness,size=far_resolution)
+        pPS=self.point(pr.Pt_radius,-pr.thickness)
+        self.create_lines(p00,"substrate_axis",p0S,"substrate_base_Pt",pPS,"substrate_base",pLS,"substrate_side",pL0)
+        self.create_lines(pPG,"Pt_side",pPS)
+        self.plane_surface("substrate_axis","substrate_base_Pt","Pt_side","liquid_Pt","bubble_substrate_Pt","left",name="Pt")
+        self.plane_surface("Pt_side","substrate_base","substrate_side","liquid_substrate","right",name="substrate")
+ 
+        # attach a remesher for meshing
+        self.remesher = Remesher2d(self)
+
 # Mesh class. An axisymmetric bubble with liquid around on a substrate
 class SingleBubbleAxisymmMesh(GmshTemplate):
     def define_geometry(self):
@@ -113,7 +173,7 @@ class SingleBubbleAxisymmMesh(GmshTemplate):
         cl_factor=0.1
         p00=self.point(0,0)
         pr0=self.point(geom.base_radius,0,size=self.default_resolution*cl_factor)
-        p0h=self.point(0,geom.apex_height,size=self.default_resolution*cl_factor*5)
+        p0h=self.point(0,geom.apex_height,size=self.default_resolution*cl_factor)
        
         self.create_lines(p0h,"bubble_axis",p00,"bubble_substrate_Pt",pr0)
         self.circle_arc(pr0,p0h,through_point=(-geom.base_radius,0),name="interface")
@@ -238,10 +298,21 @@ class SingleBubbleProblem(Problem):
  
     #def define_fields(self):
         #self.define_scalar_field("Q",space="C2")
-    def decreaing_potential(self,r=var("coordinate_x")):
-        phi_v = (1-r/self.Pt_radius)*self.voltage_base
-        return phi_v
+
+    #def decreaing_potential(self,r=var("coordinate_x")):
+        #phi_v = (1-r/self.Pt_radius)*1
+        #return phi_v
    
+    
+    def decreasing_potential(self, r=var("coordinate_x")):
+
+        phi_v = 0.5 * (1 + cos(pi * r / self.Pt_radius))
+        return phi_v 
+
+
+
+
+
     def define_problem(self):
 
        
@@ -262,11 +333,11 @@ class SingleBubbleProblem(Problem):
         self.set_scaling(pressure=self.sigma0/scale_factor("spatial"))
         self.set_scaling(c=self.c0)
         self.set_scaling(temperature=self.Troom)
-        self.set_scaling(phiv=1*volt)
+        #self.set_scaling(phiv=1*volt)
         self.set_scaling(thermal_equation=self.Troom*self.thermal_conductivity/self.R0**2)
         self.set_scaling(T=self.Troom)
         self.set_scaling(elec=1*ampere/(volt*meter))
-        self.set_scaling(phiv=1*volt)
+        #self.set_scaling(phiv=1*volt)
         self.set_scaling(Qscale=1*watt/meter**3)
         self.set_scaling(Jscale=1*ampere/meter**2)
         #self.set_scaling(J = 1 * ampere / meter**2)
@@ -274,9 +345,10 @@ class SingleBubbleProblem(Problem):
         self.define_named_var(absolute_pressure=1*atm + var("pressure"))
  
         # add the mesh
-        self+=SingleBubbleAxisymmMesh()
+        self+=SingleBubbleAxisymmMesh_delta()
+        #self+=SingleBubblePlotter()
         self+=SingleBubblePlotter()
-        
+
  
         geom=DropletGeometry(curv_radius=self.R0,contact_angle=self.contact_angle)
  
@@ -295,36 +367,15 @@ class SingleBubbleProblem(Problem):
         liquid_eqs+=Current()
         liquid_eqs+=NeumannBC(J=-var("normal")*0)@"liquid_top"
         liquid_eqs+=NeumannBC(J=-var("normal")*1)@"liquid_Pt"
+        #liquid_eqs+=NeumannBC(J=-var("normal")*self.decreasing_potential())@"liquid_Pt"
         liquid_eqs+=CurrentNoFlux()@"interface"
-        liquid_eqs+=DirichletBC(J_y = 1)@"liquid_Pt"
+        #liquid_eqs+=DirichletBC(J_y = -1,J_x = 0)@"liquid_Pt"
+        #liquid_eqs+=DirichletBC(J_x = 0)@"liquid_Pt"
         liquid_eqs+=AxisymmetryBC()@"liquid_axis"
-        liquid_eqs+=InitialCondition(phi=-0.5)
+        #liquid_eqs+=InitialCondition(phi=-0.5)
         liquid_eqs+=DirichletBC(J_y = 0)@"liquid_substrate"
-
-        # Poisson (Laplace) equation for the electric potential:
-        #liquid_eqs+=PoissonEquation(name = "phiv",coefficient=scale_factor("spatial")**2)
-        #liquid_eqs+=PoissonEquation(name = "phiv",coefficient=self.electric_conductivity*scale_factor("spatial")**2/scale_factor("elec"))
-        #liquid_eqs+=DirichletBC(phiv=self.voltage_top)@"liquid_top"
-        #liquid_eqs+=NeumannBC(phiv = 0)@"liquid_side"
-        #liquid_eqs+=NeumannBC(phiv = 0)@"liquid_substrate"
-        #liquid_eqs+=NeumannBC(phiv = 0)@"interface"
-        #liquid_eqs+=DirichletBC(phiv=self.voltage_base)@"liquid_Pt"
-        #liquid_eqs+=DirichletBC(phiv=self.voltage_base)@"liquid_substrate"
-        #liquid_eqs+=DirichletBC(phiv=self.decreaing_potential())@"liquid_Pt"
-
-        #liquid_eqs+=Scaling(phiv=scale_factor("phiv"))#+TestScaling(J=1/scale_factor("phiv"))
-        #liquid_eqs+=ConnectFieldsAtInterface("phiv")@"liquid_Pt"
-        #liquid_eqs+=ConnectMeshAtInterface()@"liquid_Pt"  
-        #liquid_eqs+=DirichletBC(phiv=self.voltage_base)@"liquid_substrate/liquid_Pt"
-        # remember to remove the _lagrange constrin when connecting to the bubble
-        #Pt_eqs+=PoissonEquation(name = "phiv",coefficient=1*self.electric_conductivity*scale_factor("spatial")**2/scale_factor("elec"))
-        #Pt_eqs+=InitialCondition(phiv=self.phi0)
-        #Pt_eqs+=DirichletBC(phiv=self.voltage_base)@"substrate_base_Pt"
-        #Pt_eqs+=AxisymmetryBC()@"substrate_axis"
-        #Pt_eqs+=NeumannBC(phiv = 0)@"bubble_substrate_Pt"
-        #Pt_eqs+=NeumannBC(phiv = 0)@"Pt_side"
-
-        #glass_eqs+=PoissonEquation(name = "phiv",coefficient=0.00000000001*self.electric_conductivity*scale_factor("spatial")**2/scale_factor("elec"))
+        liquid_eqs+=DirichletBC(J_x = 0)@"liquid_side"
+        liquid_eqs+=ConnectMeshAtInterface()@"liquid_Pt" 
 
         # Navier-Stokes equation in the liquid domain
         liquid_eqs+=NavierStokesEquations(mass_density=self.rho_liq,dynamic_viscosity=self.mu_liq,gravity=self.gravity)
@@ -352,14 +403,16 @@ class SingleBubbleProblem(Problem):
         #Q=dot(var("J"),var("J"))/self.electric_conductivity
         #Q=dot(grad(var("phiv")),grad(var("phiv")))*self.electric_conductivity
 
-        liquid_eqs+=LocalExpressions(Q=dot(var("J"),var("J")))
-        #liquid_eqs+=LocalExpressions(J=self.electric_conductivity*grad(var("phiv")) )
+        #liquid_eqs+=LocalExpressions(Q=dot(var("J"),var("J")))
+        #liquid_eqs+=LocalExpressions(J=grad(var("phiv")) )
+        #Pt_eqs+=LocalExpressions(J=grad(var("phiv")) )
         #Pt_eqs+=LocalExpressions(J=self.electric_conductivity*grad(var("phiv")) )
-        Q=dot(var("J"),var("J"))
+        Q=dot(var("J"),var("J"))*1000*scale_factor("Qscale")
 
 
         # Temperature and concentration advection-diffusion equation
-        liquid_eqs+=AdvectionDiffusionEquations("temperature", diffusivity=self.thermal_diffusivity, space="C1", wind=var("velocity"), source = 10000*Q*scale_factor("Qscale")/ (self.mass_density*self.specific_heat_capacity)) # , source = Q/ (self.mass_density*self.specific_heat_capacity)) #, source = Q/ (self.mass_density*self.specific_heat_capacity
+        #, source = 1000000*Q*scale_factor("Qscale")/ (self.mass_density*self.specific_heat_capacity)
+        liquid_eqs+=AdvectionDiffusionEquations("temperature", diffusivity=self.thermal_diffusivity, space="C1", wind=var("velocity"), source = Q/ (self.mass_density*self.specific_heat_capacity) ) # , source = Q/ (self.mass_density*self.specific_heat_capacity) 
         liquid_eqs+=AdvectionDiffusionInfinity(temperature=self.Troom)@"liquid_side"
         liquid_eqs+=AdvectionDiffusionInfinity(temperature=self.Troom)@"liquid_top"
         liquid_eqs+=InitialCondition(temperature=self.Troom)
@@ -368,8 +421,9 @@ class SingleBubbleProblem(Problem):
         Pt_eqs+=AdvectionDiffusionEquations("temperature", diffusivity=self.thermal_diffusivity, space="C1", wind=0)
         Pt_eqs+=InitialCondition(temperature=self.Troom)
 
-
-
+        liquid_eqs+=TextFileOutput()@"liquid_Pt"
+        #liquid_eqs+=TextFileOutput(cartesian,J_y=var("J_y"),J_x=var("J_x"),pos = var("coordinate_x"))@"liquid_Pt"
+        #liquid_eqs+=IntegralObservableOutput("current")@"liquid_Pt" #/bubble_substrate_Pt
         #liquid_eqs+=LocalExpressions(j=grad(var("phiv")))
         #Pt_eqs+=LocalExpressions(j=grad(var("phiv")))
 
@@ -378,8 +432,21 @@ class SingleBubbleProblem(Problem):
  
 with SingleBubbleProblem() as p:
     #p.presolve_temperature()
-    p.run(10*milli*second,outstep=0.1*milli*second,temporal_error=1)#,startstep=0.001*second
+    #p.run(10*milli*second,outstep=0.1*milli*second,temporal_error=1)#,startstep=0.001*second
     p.solve(max_newton_iterations=20)
     p.output()
     #p.output_at_increased_time()
     #p.run(10*second,outstep=True,temporal_error=1,start_step=0.001*second)
+
+'''
+        liquid_eqs+=Current()
+        liquid_eqs+=NeumannBC(J=-var("normal")*0)@"liquid_top"
+        liquid_eqs+=NeumannBC(J=-var("normal")*1)@"liquid_Pt"
+        liquid_eqs+=CurrentNoFlux()@"interface"
+        liquid_eqs+=DirichletBC(J_y = 1,J_x = 0)@"liquid_Pt"
+        liquid_eqs+=AxisymmetryBC()@"liquid_axis"
+        #liquid_eqs+=InitialCondition(phi=-0.5)
+        liquid_eqs+=DirichletBC(J_y = 0)@"liquid_substrate"
+        liquid_eqs+=DirichletBC(J_x = 0)@"liquid_side"
+        liquid_eqs+=ConnectMeshAtInterface()@"liquid_Pt" 
+'''
